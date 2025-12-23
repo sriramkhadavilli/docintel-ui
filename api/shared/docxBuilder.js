@@ -7,15 +7,32 @@ function safeText(s) {
 async function buildDocxFromLayout(layoutResult) {
   const children = [];
 
-  const pages = layoutResult?.pages || [];
+  // ✅ Works for REST SDK + legacy shape
+  const pages =
+    layoutResult?.analyzeResult?.pages ||
+    layoutResult?.pages ||
+    [];
+
   for (let i = 0; i < pages.length; i++) {
-    children.push(new Paragraph({ text: `Page ${i + 1}`, heading: HeadingLevel.HEADING_2 }));
+    children.push(
+      new Paragraph({
+        text: `Page ${i + 1}`,
+        heading: HeadingLevel.HEADING_2
+      })
+    );
 
     const page = pages[i];
     const lines = page?.lines || [];
+
     for (const ln of lines) {
       const t = safeText(ln?.content);
-      if (t) children.push(new Paragraph({ children: [new TextRun(t)] }));
+      if (t) {
+        children.push(
+          new Paragraph({
+            children: [new TextRun(t)]
+          })
+        );
+      }
     }
 
     if (i !== pages.length - 1) {
