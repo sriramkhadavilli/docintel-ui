@@ -26,12 +26,17 @@ async function parseMultipart(req) {
     bb.on("error", reject);
     bb.on("finish", () => resolve({ files, fields }));
 
-    // ✅ Azure Functions FIX:
-    // In SWA Functions, req may not be a stream; req.body usually exists.
-    const stream = req.body
-      ? Readable.from(req.body)
-      : req;
+    // ✅ Azure Functions FIX (robust):
+    // req.body may be string / Buffer / Uint8Array. Convert to Buffer for Busboy.
+    let bodyBuf = null;
+    if (req.body) {
+      if (Buffer.isBuffer(req.body)) bodyBuf = req.body;
+      else if (req.body instanceof Uint8Array) bodyBuf = Buffer.from(req.body);
+      else if (typeof req.body === "string") bodyBuf = Buffer.from(req.body, "binary");
+      else bodyBuf = Buffer.from(JSON.stringify(req.body));
+    }
 
+    const stream = bodyBuf ? Readable.from(bodyBuf) : req;
     stream.pipe(bb);
   });
 }
