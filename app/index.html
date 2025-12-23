@@ -1,1 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PDF Scan → Word (Editable)</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="wrap">
+    <h1>Scanned PDF → Word (.docx)</h1>
+    <p class="sub">
+      Upload a scanned PDF. We extract layout/text using Azure Document Intelligence and return a DOCX for download.
+    </p>
+
+    <div class="card">
+      <label class="lbl">Upload scanned PDF</label>
+      <input id="pdf" type="file" accept="application/pdf" />
+
+      <button id="btn">Convert & Download</button>
+      <div id="msg" class="msg"></div>
+
+      <div class="note">
+        Notes:
+        <ul>
+          <li>No files are stored permanently.</li>
+          <li>For free-tier protection, the API limits PDF size.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="foot">
+      Powered by Azure Document Intelligence (prebuilt-layout).
+    </p>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
 
