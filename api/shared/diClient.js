@@ -15,7 +15,8 @@ async function analyzeLayoutPdf(client, pdfBuffer) {
   const poller = await client.beginAnalyzeDocument("prebuilt-layout", pdfBuffer, {
     contentType: "application/pdf"
   });
-  return await poller.result();
+  const result = await poller.pollUntilDone();
+  return result;
 }
 
 module.exports = { getDIClient, analyzeLayoutPdf };
