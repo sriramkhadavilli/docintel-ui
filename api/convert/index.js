@@ -1,9 +1,15 @@
 const { parseMultipart } = require("../shared/multipart");
 const { getDIClient, analyzeLayoutPdf } = require("../shared/diClient");
-const { buildDocxFromLayout } = require("../shared/docxBuilder");
+
+// ✅ STEP 7B.4 — use hybrid builder + pdf-to-images
+const { buildHybridDocx } = require("../shared/docxBuilder");
+const { pdfToPngBuffers } = require("../shared/pdfToImages");
 
 const MAX_MB = 15;
 const MAX_BYTES = MAX_MB * 1024 * 1024;
+
+// ✅ STEP 7B.4 — stricter safety limits (free-tier + performance)
+const MAX_PAGES_PER_FILE = 10; // keep free + fast
 
 module.exports = async function (context, req) {
   context.log("PDF convert request received");
@@ -37,8 +43,26 @@ module.exports = async function (context, req) {
     }
 
     const client = getDIClient();
+
+    // Run Document Intelligence layout extraction
     const layout = await analyzeLayoutPdf(client, uploaded.buffer);
-    const docxBuf = await buildDocxFromLayout(layout);
+
+    // Render PDF pages to images (scan-perfect look)
+    const { images, totalPages } = await pdfToPngBuffers(uploaded.buffer, {
+      maxPages: MAX_PAGES_PER_FILE,
+      scale: 1.6
+    });
+
+    if (totalPages > MAX_PAGES_PER_FILE) {
+      context.res = {
+        status: 400,
+        body: `PDF has ${totalPages} pages. Free-tier limit is ${MAX_PAGES_PER_FILE} pages per file.`
+      };
+      return;
+    }
+
+    // Build hybrid docx (page images + editable content)
+    const docxBuf = await buildHybridDocx(layout, images);
 
     // ✅ STEP 7A.2 — dynamic output filename
     const outName = (uploaded.filename || "converted.pdf")
