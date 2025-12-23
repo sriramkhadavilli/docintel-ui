@@ -7,6 +7,7 @@ const MAX_BYTES = MAX_MB * 1024 * 1024;
 
 module.exports = async function (context, req) {
   context.log("PDF convert request received");
+
   try {
     const ct = (req.headers["content-type"] || "").toLowerCase();
     if (!ct.includes("multipart/form-data")) {
@@ -39,12 +40,18 @@ module.exports = async function (context, req) {
     const layout = await analyzeLayoutPdf(client, uploaded.buffer);
     const docxBuf = await buildDocxFromLayout(layout);
 
+    // ✅ STEP 7A.2 — dynamic output filename
+    const outName = (uploaded.filename || "converted.pdf")
+      .replace(/\.pdf$/i, "")
+      .replace(/[^\w\-]+/g, "_") + ".docx";
+
     context.res = {
       status: 200,
       isRaw: true,
       headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": 'attachment; filename="converted.docx"'
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename="${outName}"`
       },
       body: docxBuf
     };
