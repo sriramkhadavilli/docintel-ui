@@ -2,12 +2,16 @@
   "name": "docintel-api",
   "version": "1.0.0",
   "private": true,
+  "type": "commonjs",
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
-    "@azure-rest/ai-document-intelligence": "^1.1.0",
+    "@azure/ai-documentintelligence": "^1.0.0",
+    "@azure/core-auth": "^1.9.0",
     "busboy": "^1.6.0",
-    "docx": "^9.1.1"
+    "docx": "^9.1.1",
+    "pdfjs-dist": "^4.10.38",
+    "canvas": "^2.11.2"
   }
 }
