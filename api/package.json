@@ -1,0 +1,15 @@
+{
+  "name": "docintel-ui-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@azure/ai-form-recognizer": "^5.0.0",
+    "@azure/core-auth": "^1.9.0",
+    "busboy": "^1.6.0",
+    "docx": "^9.0.0"
+  }
+}
