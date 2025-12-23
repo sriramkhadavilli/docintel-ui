@@ -6,6 +6,7 @@ const MAX_MB = 15;
 const MAX_BYTES = MAX_MB * 1024 * 1024;
 
 module.exports = async function (context, req) {
+  context.log("PDF convert request received");
   try {
     const ct = (req.headers["content-type"] || "").toLowerCase();
     if (!ct.includes("multipart/form-data")) {
@@ -48,6 +49,10 @@ module.exports = async function (context, req) {
       body: docxBuf
     };
   } catch (e) {
-    context.res = { status: 500, body: `Server error: ${e.message}` };
+    context.log.error("Conversion failed:", e);
+    context.res = {
+      status: 500,
+      body: `Server error: ${e.message}`
+    };
   }
 };
