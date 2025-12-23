@@ -1,0 +1,63 @@
+body {
+  font-family: system-ui, Arial, sans-serif;
+  background: #f6f7fb;
+  margin: 0;
+  padding: 0;
+}
+
+.wrap {
+  max-width: 760px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+h1 { margin: 0 0 10px; }
+.sub { margin: 0 0 18px; color: #444; line-height: 1.35; }
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.08);
+}
+
+.lbl { display:block; margin-top: 6px; font-weight: 700; margin-bottom: 8px; }
+
+input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #dcdcdc;
+  border-radius: 10px;
+}
+
+button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #111827;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.msg {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 10px;
+  display: none;
+}
+
+.msg.ok { display:block; background:#e8fff0; color:#0a6; }
+.msg.err { display:block; background:#ffecec; color:#b00; }
+
+.note {
+  margin-top: 12px;
+  color: #555;
+  font-size: 13px;
+}
+
+.foot { margin-top: 12px; font-size: 13px; color:#666; }
