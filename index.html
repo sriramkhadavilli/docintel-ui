@@ -1,1 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scanned Document to Word Converter</title>
+  <style>
+    :root {
+      --color-primary: #2563eb;
+      --color-primary-hover: #1d4ed8;
+      --color-success: #10b981;
+      --color-error: #ef4444;
+      --color-bg: #f9fafb;
+      --color-surface: #ffffff;
+      --color-border: #e5e7eb;
+      --color-text: #1f2937;
+      --color-text-secondary: #6b7280;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: var(--color-text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container { max-width: 750px; width: 100%; }
+    .card {
+      background: var(--color-surface);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+      padding: 50px;
+      border: 1px solid rgba(229, 231, 235, 0.5);
+    }
+    .header { text-align: center; margin-bottom: 40px; }
+    .logo { font-size: 48px; margin-bottom: 15px; }
+    h1 { font-size: 32px; margin-bottom: 10px; font-weight: 700; }
+    .subtitle { color: var(--color-text-secondary); font-size: 15px; margin-bottom: 5px; }
+    .tagline { color: var(--color-primary); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .upload-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: 12px;
+      padding: 60px 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 25px;
+      background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-zone:hover { border-color: var(--color-primary); background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); }
+    .upload-zone.drag-over {
+      border-color: var(--color-primary);
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+      transform: scale(1.01);
+    }
+    .upload-icon { font-size: 56px; margin-bottom: 15px; }
+    .upload-zone p { color: var(--color-text-secondary); font-size: 15px; margin: 8px 0; line-height: 1.6; }
+    .upload-zone .highlight { color: var(--color-primary); font-weight: 700; }
+    .file-hint { font-size: 13px; color: var(--color-text-secondary); margin-top: 10px; }
+    #fileInput { display: none; }
+
+    .btn {
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--color-primary) 0%, #1e40af 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--color-primary-hover) 0%, #1e3a8a 100%);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+      transform: translateY(-2px);
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .file-info {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
+      border: 1px solid #86efac;
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 22px;
+      display: none;
+    }
+    .file-info.show { display: block; }
+    .file-info-name { font-weight: 700; color: #166534; font-size: 15px; }
+
+    .progress-container { display: none; margin-bottom: 25px; }
+    .progress-container.show { display: block; }
+    .progress-bar { width: 100%; height: 10px; background: var(--color-border); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--color-primary) 0%, #1e40af 100%); width: 0%; transition: width 0.4s ease; border-radius: 10px; }
+    .progress-text { font-size: 13px; color: var(--color-text-secondary); text-align: center; font-weight: 500; }
+
+    .status-message {
+      padding: 15px 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+      border-left: 4px solid;
+    }
+    .status-message.show { display: block; }
+    .status-message.success { background: #ecfdf5; color: #166534; border-color: #10b981; }
+    .status-message.error { background: #fef2f2; color: #991b1b; border-color: #ef4444; }
+    .status-message.processing { background: #eff6ff; color: #1e40af; border-color: #2563eb; }
+
+    @media (max-width: 640px) {
+      .card { padding: 30px 20px; }
+      h1 { font-size: 26px; }
+      .upload-zone { padding: 40px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <div class="logo">📄</div>
+        <h1>Document Converter</h1>
+        <p class="subtitle">Upload a scanned PDF → get a Word (.docx) download</p>
+        <p class="tagline">⚡ OCR powered by Azure Document Intelligence</p>
+      </div>
+
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-content">
+          <div class="upload-icon">📤</div>
+          <p>Drag and drop your PDF here</p>
+          <p>or <span class="highlight">click to browse</span></p>
+          <p class="file-hint">Max 20MB • PDF only</p>
+        </div>
+      </div>
+
+      <input type="file" id="fileInput" accept=".pdf" />
+
+      <div class="file-info" id="fileInfo">
+        <div class="file-info-name" id="fileName"></div>
+        <div class="file-info-text" id="fileSize"></div>
+      </div>
+
+      <div class="status-message" id="statusMessage"></div>
+
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">Initializing...</div>
+      </div>
+
+      <button class="btn btn-primary" id="convertBtn" disabled>
+        <span>🚀 Convert to Word</span>
+      </button>
+
+      <div class="status-message show processing" style="margin-top:10px;">
+        Backend URL is configured inside the code. If download fails, we’ll fix CORS/API endpoint next.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 🔧 IMPORTANT: Replace this with your Container App URL
+    const API_BASE = "https://YOUR-CONTAINER-APP-URL";
+
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const convertBtn = document.getElementById('convertBtn');
+    const statusMessage = document.getElementById('statusMessage');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+
+    let selectedFile = null;
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('drag-over');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('drag-over');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag-over');
+      handleFileSelect(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      handleFileSelect(e.target.files);
+    });
+
+    function handleFileSelect(files) {
+      if (!files || files.length === 0) return;
+      const file = files[0];
+
+      if (file.type !== 'application/pdf') {
+        showStatus('❌ Please select a valid PDF file', 'error');
+        resetSelection();
+        return;
+      }
+
+      if (file.size > 20 * 1024 * 1024) {
+        showStatus('❌ File size must be less than 20MB (for quick demo)', 'error');
+        resetSelection();
+        return;
+      }
+
+      selectedFile = file;
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileSize').textContent = `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+      fileInfo.classList.add('show');
+      convertBtn.disabled = false;
+      showStatus('', '');
+    }
+
+    function resetSelection() {
+      selectedFile = null;
+      fileInfo.classList.remove('show');
+      convertBtn.disabled = true;
+    }
+
+    function showStatus(message, type) {
+      if (!message) {
+        statusMessage.classList.remove('show');
+        statusMessage.textContent = '';
+        return;
+      }
+      statusMessage.textContent = message;
+      statusMessage.className = `status-message show ${type}`;
+    }
+
+    function updateProgress(percent, text) {
+      progressFill.style.width = percent + '%';
+      progressText.textContent = text;
+    }
+
+    convertBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      try {
+        convertBtn.disabled = true;
+        progressContainer.classList.add('show');
+        showStatus('⏳ Uploading & converting…', 'processing');
+        updateProgress(10, 'Uploading PDF…');
+
+        const form = new FormData();
+        form.append("file", selectedFile);
+
+        // Call backend: POST /convert (returns .docx)
+        const res = await fetch(`${API_BASE}/convert`, {
+          method: "POST",
+          body: form
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Backend error (${res.status}): ${text}`);
+        }
+
+        updateProgress(80, 'Downloading Word file…');
+        const blob = await res.blob();
+
+        updateProgress(100, 'Done!');
+        downloadBlob(blob, selectedFile.name.replace(/\.pdf$/i, '') + ".docx");
+
+        showStatus('✅ Converted successfully. Download started.', 'success');
+      } catch (err) {
+        showStatus(`❌ ${err.message}`, 'error');
+        console.error(err);
+      } finally {
+        progressContainer.classList.remove('show');
+        progressFill.style.width = '0%';
+        convertBtn.disabled = false;
+      }
+    });
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
 
