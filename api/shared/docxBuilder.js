@@ -10,6 +10,7 @@ const {
   TableRow,
   TableCell,
   WidthType,
+  ImageRun,
   PageBreak
 } = require("docx");
 
@@ -82,15 +83,31 @@ function buildWordTableFromDI(diTable) {
   });
 }
 
-async function buildDocxFromLayout(layoutResult) {
+/**
+ * HYBRID DOCX:
+ * - Insert page image (scan-perfect look)
+ * - Insert extracted tables + text after it (editable content)
+ *
+ * Supports both shapes:
+ * - REST: layoutResult.analyzeResult.pages/tables
+ * - Legacy: layoutResult.pages/tables
+ *
+ * pageImages: [{ pageNumber, pngBuffer, width, height }]
+ */
+async function buildHybridDocx(layoutResult, pageImages) {
   const children = [];
 
-  // ✅ Supports REST SDK shape (layoutResult.analyzeResult.*) + legacy (layoutResult.*)
   const analyze = layoutResult?.analyzeResult || layoutResult || {};
   const pages = analyze?.pages || [];
   const tables = analyze?.tables || [];
 
-  // Precompute all table span ranges for deduping lines
+  // Map images by pageNumber
+  const imageMap = new Map();
+  for (const img of pageImages || []) {
+    if (img?.pageNumber != null) imageMap.set(img.pageNumber, img);
+  }
+
+  // Precompute all table span ranges for deduping lines (optional)
   const allTableSpanRanges = [];
   for (const t of tables) {
     for (const sp of t?.spans || []) {
@@ -114,7 +131,30 @@ async function buildDocxFromLayout(layoutResult) {
       })
     );
 
-    // 1) Insert tables belonging to this page
+    // 1) Insert page image (if available)
+    const img = imageMap.get(pageNumber);
+    if (img?.pngBuffer) {
+      // Fit to page width in Word (approx). Cap width to 600px.
+      const maxWidth = 600;
+      const ratio = img.width > maxWidth ? maxWidth / img.width : 1;
+      const w = Math.max(1, Math.round((img.width || maxWidth) * ratio));
+      const h = Math.max(1, Math.round((img.height || maxWidth) * ratio));
+
+      children.push(
+        new Paragraph({
+          children: [
+            new ImageRun({
+              data: img.pngBuffer,
+              transformation: { width: w, height: h }
+            })
+          ]
+        })
+      );
+
+      children.push(new Paragraph({ text: "" }));
+    }
+
+    // 2) Insert tables for this page (editable)
     const tablesOnPage = tables.filter((t) =>
       (t?.boundingRegions || []).some((br) => br?.pageNumber === pageNumber)
     );
@@ -130,16 +170,11 @@ async function buildDocxFromLayout(layoutResult) {
       );
 
       children.push(buildWordTableFromDI(t));
-
-      children.push(
-        new Paragraph({
-          spacing: { after: 200 },
-          text: ""
-        })
-      );
+      children.push(new Paragraph({ text: "" }));
     }
 
-    // 2) Insert text lines (skip ones that overlap table spans to reduce duplicates)
+    // 3) Insert text lines (editable)
+    // Skip ones that overlap table spans to reduce duplicates when spans exist.
     const lines = pages[i]?.lines || [];
     for (const ln of lines) {
       const t = safeText(ln?.content);
@@ -155,17 +190,14 @@ async function buildDocxFromLayout(layoutResult) {
       );
     }
 
-    // Page break between pages
+    // Page break between pages (better than blank lines)
     if (i !== pages.length - 1) {
       children.push(new Paragraph({ children: [new PageBreak()] }));
     }
   }
 
-  const doc = new Document({
-    sections: [{ children }]
-  });
-
+  const doc = new Document({ sections: [{ children }] });
   return await Packer.toBuffer(doc);
 }
 
-module.exports = { buildDocxFromLayout };
+module.exports = { buildHybridDocx };
