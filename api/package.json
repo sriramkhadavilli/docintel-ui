@@ -7,8 +7,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@azure/ai-documentintelligence": "^1.0.0",
-    "@azure/core-auth": "^1.9.0",
+    "@azure-rest/ai-document-intelligence": "^1.1.0",
     "busboy": "^1.6.0",
     "docx": "^9.1.1",
     "pdfjs-dist": "^4.10.38",
