@@ -2,48 +2,52 @@ const { chromium } = require("playwright");
 const fs = require("fs/promises");
 const path = require("path");
 const os = require("os");
+const { pathToFileURL } = require("url");
 
-/**
- * Render PDF pages to PNG buffers using Playwright (serverless-safe).
- * Returns scan-perfect images without native dependencies.
- */
 async function pdfToPngBuffers(pdfBuffer, maxPages = 10) {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "pdf-"));
   const pdfPath = path.join(tmpDir, "input.pdf");
-
   await fs.writeFile(pdfPath, pdfBuffer);
 
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-
-  // Chromium can natively render PDFs
-  await page.goto(`file://${pdfPath}`, { waitUntil: "load" });
-
-  // Best-effort page count detection
-  const pageCount = await page.evaluate(() =>
-    Math.max(document.querySelectorAll("embed, canvas").length, 1)
-  );
-
-  const pagesToRender = Math.min(pageCount, maxPages);
-  const images = [];
-
-  for (let i = 0; i < pagesToRender; i++) {
-    const png = await page.screenshot({ fullPage: true });
-
-    images.push({
-      pageNumber: i + 1,
-      pngBuffer: png,
-      width: 800,
-      height: 1100
+  let browser;
+  try {
+    browser = await chromium.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu"
+      ]
     });
+
+    const page = await browser.newPage();
+
+    // Use file URL safely
+    const fileUrl = pathToFileURL(pdfPath).toString();
+    await page.goto(fileUrl, { waitUntil: "load" });
+
+    // We can’t reliably count PDF pages from DOM here; keep it simple:
+    // Treat totalPages as maxPages (enforced server-side) for now.
+    const totalPages = maxPages;
+
+    const images = [];
+    for (let i = 0; i < maxPages; i++) {
+      const png = await page.screenshot({ fullPage: true });
+      images.push({
+        pageNumber: i + 1,
+        pngBuffer: png,
+        width: 800,
+        height: 1100
+      });
+    }
+
+    return { images, totalPages };
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+    // Best-effort cleanup
+    await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   }
-
-  await browser.close();
-
-  return {
-    images,
-    totalPages: pageCount
-  };
 }
 
 module.exports = { pdfToPngBuffers };
